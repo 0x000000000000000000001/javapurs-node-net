@@ -20,7 +20,6 @@
             server.port = server.server.getLocalPort();
             server.host = host;
             server.listening = true;
-            server.fire("listening");
         } catch (java.io.IOException failure) {
             server.fire("error", new RuntimeException(failure));
             return;
@@ -42,6 +41,9 @@
         });
         acceptor.setDaemon(true);
         acceptor.start();
+        // Fire after the acceptor runs, so handlers that block on a request
+        // (as the smoke test does) cannot deadlock the server.
+        server.fire("listening");
     }
 
     public static Object newServerImpl = (java.util.function.Supplier<Object>) () -> new TcpServer();
