@@ -1,10 +1,15 @@
     // Port of Node/Net/Server.js over java.net.ServerSocket.
-    public static final class TcpServer extends __M$Node_EventEmitter.EmitterBase {
+    public static class TcpServer extends __M$Node_EventEmitter.EmitterBase {
         public java.net.ServerSocket server;
         public int port = 0;
         public String host = "localhost";
         public boolean listening = false;
         public boolean closed = false;
+
+        public void onConnection(__M$Node_Net_Socket.TcpSocket socket) {
+            fire("connection", socket);
+            __M$Node_Net_Socket.__startReader(socket);
+        }
     }
 
     private static void __listen(TcpServer server, int port, String host) {
@@ -27,8 +32,7 @@
                     __M$Node_Net_Socket.TcpSocket socket = new __M$Node_Net_Socket.TcpSocket();
                     socket.socket = accepted;
                     socket.connected = true;
-                    server.fire("connection", socket);
-                    __M$Node_Net_Socket.__startReader(socket);
+                    server.onConnection(socket);
                 } catch (java.io.IOException failure) {
                     if (!server.closed) server.fire("error", new RuntimeException(failure));
                     break;
