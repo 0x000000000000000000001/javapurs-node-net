@@ -16,7 +16,7 @@
         try {
             server.server = new java.net.ServerSocket();
             server.server.setReuseAddress(true);
-            server.server.bind(new java.net.InetSocketAddress(host, port));
+            server.server.bind(new java.net.InetSocketAddress(port));
             server.port = server.server.getLocalPort();
             server.host = host;
             server.listening = true;
