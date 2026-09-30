@@ -20,7 +20,7 @@
     };
 
     public static Object isIPv4 = (java.util.function.Function<Object, Object>) (value) ->
-        ((Number) isIPImpl(value)).intValue() == 4;
+        ((Number) ((java.util.function.Function<Object, Object>) isIPImpl).apply(value)).intValue() == 4;
 
     public static Object isIPv6 = (java.util.function.Function<Object, Object>) (value) ->
-        ((Number) isIPImpl(value)).intValue() == 6;
+        ((Number) ((java.util.function.Function<Object, Object>) isIPImpl).apply(value)).intValue() == 6;
