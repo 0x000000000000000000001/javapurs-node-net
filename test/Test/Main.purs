@@ -1,10 +1,14 @@
-module Test.Main (main) where
+module Test.Main (main, testNet) where
 
 import Prelude
 
 import Data.Maybe (Maybe(..))
 import Effect (Effect)
+import Effect.Aff (Aff, Milliseconds(..), delay, launchAff_, throwError)
+import Effect.Class (liftEffect)
 import Effect.Console (errorShow, infoShow, logShow)
+import Effect.Exception (error)
+import Effect.Ref as Ref
 import Node.Buffer (toString)
 import Node.Encoding (Encoding(..))
 import Node.EventEmitter (on_)
@@ -13,7 +17,24 @@ import Node.Net.Socket as Socket
 import Node.Stream as Stream
 
 main :: Effect Unit
-main = do
+main = launchAff_ testNet
+
+-- The JVM port keeps the socket lifecycle on background threads. Wait for the
+-- final close event instead of returning immediately after setup.
+testNet :: Aff Unit
+testNet = do
+  closed <- liftEffect $ Ref.new false
+  liftEffect $ start closed
+  wait closed 0
+  where
+  wait closed attempts = do
+    finished <- liftEffect $ Ref.read closed
+    if finished then pure unit
+    else if attempts >= 500 then throwError (error "Node Net suite timed out")
+    else delay (Milliseconds 10.0) *> wait closed (attempts + 1)
+
+start :: Ref.Ref Boolean -> Effect Unit
+start closed = do
   server <- Server.createTcpServer
   server # on_ Server.connectionH \socket -> do
     let sDuplex = Socket.toDuplex socket
@@ -33,7 +54,6 @@ main = do
   server # on_ Server.listeningH do
     infoShow { _message: "Server is listening" }
 
-  Server.listenTcp server { port: 0, host: "localhost" }
   server # on_ Server.listeningH do
     addr <- Server.addressTcp server
     infoShow { _message: "Opened server", addr }
@@ -46,9 +66,11 @@ main = do
         socket # on_ Socket.connectH do
           infoShow { _message: "Connected to server" }
 
-        socket # on_ Socket.closeH case _ of
-          false -> infoShow { _message: "Socket closed without an error" }
-          true -> errorShow { _message: "Socket closed with an error" }
+        socket # on_ Socket.closeH \failed -> do
+          case failed of
+            false -> infoShow { _message: "Socket closed without an error" }
+            true -> errorShow { _message: "Socket closed with an error" }
+          Ref.write true closed
         socket # on_ Socket.connectH do
           infoShow { _message: "Socket connected" }
         sDuplex # on_ Stream.dataH \buffer -> do
@@ -72,3 +94,6 @@ main = do
           infoShow { _message: "Socket timed out" }
           void $ Stream.writeString sDuplex UTF8 "Closing connection"
           Stream.end sDuplex
+
+  -- Both listening handlers must exist before the eager Java bind fires.
+  Server.listenTcp server { port: 0, host: "localhost" }

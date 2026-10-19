@@ -59,7 +59,8 @@
             record.put("port", server.port);
             record.put("family", "IPv4");
             record.put("address", server.server.getInetAddress().getHostAddress());
-            return new __M$Data_Maybe.Just(record);
+            // addressTcpImpl returns Nullable: the raw record or null.
+            return record;
         };
 
     public static Object addressIpcImpl = (java.util.function.Function<Object, Object>) (server) ->
