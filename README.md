@@ -1,5 +1,9 @@
 # purescript-node-net
 
+Java port of the PureScript `node-net` package. See the
+[port maintenance guide](../javapurs/docs/port-maintenance.md)
+for source layout, local dependency selection and JVM validation.
+
 ## JVM tests
 
 `./bin/test` delegates to the [common runner](../javapurs/docs/testing.md#port-particulier) as `node-net`. The wrapper awaits `Test.Main.testNet`, which now joins the final socket close event and checks the server `Nullable` address. The output covers listening, connection, received data, socket end/close and `[OK] node-net suite`.
